@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BDC Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4f8;
+  --bg2:#ffffff;
+  --bg3:#dce6f2;
+  --border:rgba(60,90,160,0.12);
+  --border2:rgba(60,90,160,0.22);
+  --text:#0f1f3d;
+  --text2:#3a5280;
+  --text3:#6a85b0;
+  --accent:#1a56a0;
+  --accent2:#2a72cc;
+  --accent-bg:rgba(26,86,160,0.08);
+  --accent-border:rgba(26,86,160,0.25);
+  --success:#2d7a4f;
+  --success-bg:rgba(45,122,79,0.08);
+  --warn:#b08020;
+  --warn-bg:rgba(176,128,32,0.08);
+  --danger:#c0392b;
+  --danger-bg:rgba(192,57,43,0.08);
+  --radius:10px;
+  --radius-sm:6px;
+  --radius-lg:14px;
+  --shadow:0 4px 24px rgba(26,86,160,0.12);
+  --font:'DM Sans',sans-serif;
+  --display:'Playfair Display',serif;
+  --mono:'DM Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231a56a0' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;z-index:0}
+#app{position:relative;z-index:1;min-height:100vh}
+
+/* Loading */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+.loading-logo{width:64px;height:64px;background:var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:20px;font-weight:700;color:#fff;letter-spacing:0.02em;box-shadow:0 8px 24px rgba(26,86,160,0.3)}
+#loading p{color:var(--text3);font-size:13px}
+
+/* Header */
+.header{background:rgba(240,235,227,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:0 24px}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:14px;height:62px}
+.logo{font-family:var(--display);font-size:20px;font-weight:700;color:var(--accent);letter-spacing:0.01em;flex:1}
+.logo span{font-size:12px;font-weight:400;color:var(--text3);font-family:var(--font);display:block;margin-top:-2px}
+input.search{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 12px;font-size:13px;color:var(--text);font-family:var(--font);outline:none;width:200px;transition:border-color 0.15s}
+input.search:focus{border-color:var(--accent);background:var(--bg2)}
+input.search::placeholder{color:var(--text3)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:500;border:1px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.btn:hover{background:var(--bg3)}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
+.btn.primary:hover{background:var(--accent2)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--text2)}
+.btn.ghost:hover{background:var(--bg3);color:var(--text)}
+.btn.danger{color:var(--danger);border-color:rgba(192,57,43,0.2)}
+.btn.danger:hover{background:var(--danger-bg)}
+.btn.sm{padding:4px 10px;font-size:12px}
+
+/* Grid */
+.main{max-width:1100px;margin:0 auto;padding:28px 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+
+/* Company Card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(26,86,160,0.06)}
+.card:hover{border-color:var(--accent-border);transform:translateY(-2px);box-shadow:var(--shadow)}
+.card-stripe{height:3px}
+.card-body{padding:16px}
+.card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.avatar{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:14px;font-weight:700;flex-shrink:0}
+.card-title{font-weight:600;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-method{font-size:11px;color:var(--text3);margin-top:2px}
+.card-actions{display:flex;gap:4px;margin-left:auto}
+.card-brief{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:38px}
+.card-stats{display:flex;gap:6px;flex-wrap:wrap}
+.stat{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.progress{height:3px;background:var(--bg3);border-radius:2px;margin-top:12px}
+.progress-fill{height:100%;border-radius:2px;transition:width 0.4s}
+
+/* Detail view */
+.detail-header{background:rgba(240,235,227,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:0 24px}
+.detail-header-inner{max-width:900px;margin:0 auto;padding:16px 0 0}
+.detail-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.brief-bar{font-size:12px;color:var(--text2);padding:10px 14px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:14px;border-left:3px solid var(--accent);line-height:1.6}
+.tabs{display:flex;gap:0;border-bottom:none}
+.tab{padding:8px 18px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text3);font-size:13px;font-weight:400;cursor:pointer;transition:all 0.15s;font-family:var(--font);white-space:nowrap}
+.tab.active{color:var(--text);font-weight:600}
+.detail-main{max-width:900px;margin:0 auto;padding:24px}
+
+/* Forms */
+.form-row{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px}
+input,textarea,select{font-family:var(--font);font-size:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 12px;outline:none;width:100%;transition:border-color 0.15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--bg2)}
+textarea{resize:vertical;line-height:1.6;min-height:80px}
+select option{background:var(--bg2)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(15,31,61,0.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal h2{font-family:var(--display);font-size:18px;font-weight:600;margin-bottom:20px;color:var(--text)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* Color picker */
+.color-opts{display:flex;gap:8px;margin-top:4px}
+.color-dot{width:28px;height:28px;border-radius:7px;cursor:pointer;border:2px solid transparent;transition:all 0.15s}
+
+/* Task/Note items */
+.item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px;transition:border-color 0.15s}
+.item:hover{border-color:var(--border2)}
+.item-body{display:flex;align-items:flex-start;gap:10px;padding:12px 14px}
+.check{width:18px;height:18px;border-radius:4px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;transition:all 0.15s;font-size:11px;font-weight:700}
+.check.done{background:var(--success-bg);border-color:var(--success);color:var(--success)}
+.item-content{flex:1;min-width:0}
+.item-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.item-title.done{text-decoration:line-through;color:var(--text3)}
+.item-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em}
+.badge.urgent{background:rgba(192,57,43,0.1);color:var(--danger)}
+.badge.normal{background:var(--accent-bg);color:var(--accent)}
+.badge.low{background:var(--bg3);color:var(--text3)}
+.badge.pinned{background:var(--warn-bg);color:var(--warn)}
+.badge.success{background:var(--success-bg);color:var(--success)}
+.due{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.comments-section{border-top:1px solid var(--border);padding:12px 14px;background:var(--bg)}
+.comment{font-size:12px;padding:7px 10px;background:var(--bg2);border-radius:6px;margin-bottom:6px;border-left:2px solid var(--accent)}
+.comment p{color:var(--text);margin-bottom:2px}
+.comment span{font-size:10px;color:var(--text3)}
+.add-comment{display:flex;gap:8px;margin-top:8px}
+.add-comment input{flex:1}
+
+/* Finance */
+.finance-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.fin-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.fin-label{font-size:11px;color:var(--text3);margin-bottom:4px}
+.fin-amount{font-size:20px;font-weight:600;font-family:var(--mono)}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty .icon{font-size:40px;margin-bottom:12px}
+
+/* Filters */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.filter{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);background:transparent;color:var(--text3);transition:all 0.15s}
+.filter.active{background:var(--accent);color:#fff;border-color:transparent}
+
+/* Section label */
+.section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;margin-top:20px}
+
+/* Add form box */
+.add-form{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn 0.2s ease}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:10px}
+
+@media(max-width:600px){
+  .header-inner{gap:8px}
+  input.search{width:130px}
+  .grid{grid-template-columns:1fr}
+  .form-2{grid-template-columns:1fr}
+  .finance-summary{grid-template-columns:1fr}
+  .detail-top{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="loading">
+    <div class="loading-logo">BDC</div>
+    <p>Loading workspace…</p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// FIREBASE CONFIG — Replace with your own values
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDbc4XZuKEOOCPypTjQFLpLXIUKJjqOS0U",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// ============================================================
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const COLORS = [
+  {id:'terracotta', bg:'rgba(181,84,30,0.1)', border:'rgba(181,84,30,0.35)', text:'#b5541e'},
+  {id:'sage',       bg:'rgba(45,122,79,0.1)',  border:'rgba(45,122,79,0.35)',  text:'#2d7a4f'},
+  {id:'slate',      bg:'rgba(70,100,140,0.1)', border:'rgba(70,100,140,0.35)', text:'#466489'},
+  {id:'plum',       bg:'rgba(130,60,130,0.1)', border:'rgba(130,60,130,0.35)', text:'#823c82'},
+  {id:'gold',       bg:'rgba(176,128,32,0.1)', border:'rgba(176,128,32,0.35)', text:'#b08020'},
+  {id:'rose',       bg:'rgba(180,60,90,0.1)',  border:'rgba(180,60,90,0.35)',  text:'#b43c5a'},
+];
+const METHODS = ['Accrual Basis','Cash Basis','Modified Cash Basis','Tax Basis','IFRS','US GAAP','Other'];
+const PRIORITIES = ['urgent','normal','low'];
+const PRIORITY_LABELS = {urgent:'🔴 Urgent', normal:'🔵 Normal', low:'⚪ Low'};
+const MEETING_TYPES = ['Meeting','Call','Email Thread','Site Visit','Other'];
+const MEETING_ICONS = {Meeting:'🤝',Call:'📞','Email Thread':'📧','Site Visit':'🏢',Other:'📋'};
+const FIN_TYPES = ['Invoice','Payment','Expense','Other'];
+const FIN_STATUS = ['Pending','Paid','Overdue','Partial'];
+
+function getColor(id){ return COLORS.find(c=>c.id===id)||COLORS[0]; }
+function initials(n){ return (n||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function fmt(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—'; }
+function dueStatus(due, done){
+  if(done||!due) return null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const diff=Math.ceil((new Date(due)-today)/86400000);
+  if(diff<0) return {label:`${Math.abs(diff)}d overdue`,color:'var(--danger)',bg:'var(--danger-bg)'};
+  if(diff===0) return {label:'Due today',color:'var(--warn)',bg:'var(--warn-bg)'};
+  if(diff<=3) return {label:`${diff}d left`,color:'var(--warn)',bg:'var(--warn-bg)'};
+  return {label:fmtDate(due),color:'var(--text3)',bg:'var(--bg3)'};
+}
+
+// ============== STATE ==============
+let companies=[], selectedCompany=null, currentTab='tasks';
+
+// ============== FIREBASE ==============
+function loadCompanies(){
+  db.collection('companies').orderBy('createdAt','desc').onSnapshot(snap=>{
+    companies = snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(selectedCompany){
+      const updated=companies.find(c=>c.id===selectedCompany.id);
+      if(updated) selectedCompany=updated;
+    }
+    render();
+  });
+}
+async function saveCompany(id, data){ await db.collection('companies').doc(id).update(data); }
+async function addCompany(data){ await db.collection('companies').add({...data, createdAt: firebase.firestore.FieldValue.serverTimestamp()}); }
+async function deleteCompany(id){ await db.collection('companies').doc(id).delete(); }
+
+// ============== RENDER ==============
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML = selectedCompany ? renderDetail() : renderList();
+  attachEvents();
+}
+
+// ============== LIST ==============
+function renderList(){
+  const search=(document.getElementById('searchVal')||{value:''}).value||'';
+  const filtered=companies.filter(c=>
+    (c.name||'').toLowerCase().includes(search.toLowerCase())||
+    (c.brief||'').toLowerCase().includes(search.toLowerCase())
+  );
+  return `
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">BDC Workspace <span>${companies.length} ${companies.length===1?'company':'companies'}</span></div>
+      <input class="search" id="searchInput" placeholder="Search…" value="${search}" oninput="onSearch(this.value)">
+      <button class="btn primary" onclick="openModal('company')">+ Add Company</button>
+    </div>
+  </header>
+  <div class="main">
+    ${filtered.length===0 ? `<div class="empty"><div class="icon">🏢</div><p>${search?'No companies match your search.':'No companies yet. Add your first one!'}</p></div>` : `
+    <div class="grid">
+      ${filtered.map(c=>{
+        const col=getColor(c.color);
+        const tasks=c.tasks||[];
+        const done=tasks.filter(t=>t.done).length;
+        const total=tasks.length;
+        const pct=total?Math.round(done/total*100):0;
+        const overdue=tasks.filter(t=>!t.done&&t.due&&new Date(t.due)<new Date()).length;
+        const pinned=(c.notes||[]).filter(n=>n.pinned&&!n.done).length;
+        const dl=c.deadline?Math.ceil((new Date(c.deadline)-new Date())/86400000):null;
+        return `<div class="card fade" onclick="selectCompany('${c.id}')">
+          <div class="card-stripe" style="background:${col.text}"></div>
+          <div class="card-body">
+            <div class="card-header">
+              <div class="avatar" style="background:${col.bg};border:1px solid ${col.border};color:${col.text}">${initials(c.name)}</div>
+              <div style="flex:1;min-width:0">
+                <div class="card-title">${c.name||''}</div>
+                <div class="card-method">${c.method||''}</div>
+              </div>
+              <div class="card-actions" onclick="event.stopPropagation()">
+                <button class="btn ghost sm" onclick="openEditCompany('${c.id}')">✏️</button>
+                <button class="btn ghost sm" onclick="confirmDelete('${c.id}')">🗑️</button>
+              </div>
+            </div>
+            <div class="card-brief">${c.brief||'<span style="color:var(--text3);font-style:italic">No brief added</span>'}</div>
+            <div class="card-stats">
+              ${total>0?`<span class="stat" style="background:${overdue>0?'var(--danger-bg)':'var(--success-bg)'};color:${overdue>0?'var(--danger)':'var(--success)'}">✅ ${done}/${total} tasks${overdue>0?` · ${overdue} overdue`:''}</span>`:''}
+              ${pinned>0?`<span class="stat" style="background:var(--warn-bg);color:var(--warn)">📌 ${pinned} pinned</span>`:''}
+              ${dl!==null?`<span class="stat" style="background:${dl<0?'var(--danger-bg)':dl<=7?'var(--warn-bg)':'var(--bg3)'};color:${dl<0?'var(--danger)':dl<=7?'var(--warn)':'var(--text3)'}">📅 ${dl<0?`${Math.abs(dl)}d overdue`:dl===0?'Due today':`${dl}d left`}</span>`:''}
+            </div>
+            ${total>0?`<div class="progress"><div class="progress-fill" style="width:${pct}%;background:${col.text};opacity:0.7"></div></div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`}
+  </div>
+  ${renderCompanyModal()}
+  ${renderDeleteModal()}`;
+}
+
+let searchTimeout;
+function onSearch(val){
+  document.getElementById('searchVal')||document.body.insertAdjacentHTML('beforeend','<input type="hidden" id="searchVal">');
+  document.getElementById('searchVal').value=val;
+  clearTimeout(searchTimeout);
+  searchTimeout=setTimeout(()=>render(),150);
+}
+
+// ============== DETAIL ==============
+function renderDetail(){
+  const c=selectedCompany;
+  const col=getColor(c.color);
+  const dl=c.deadline?Math.ceil((new Date(c.deadline)-new Date())/86400000):null;
+  return `
+  <header class="detail-header">
+    <div class="detail-header-inner">
+      <div class="detail-top">
+        <button class="btn ghost sm" onclick="goBack()">← Back</button>
+        <div class="avatar" style="background:${col.bg};border:1px solid ${col.border};color:${col.text};width:38px;height:38px;border-radius:9px;font-size:12px">${initials(c.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--display);font-size:16px;font-weight:600">${c.name}</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text3)">${c.method}</span>
+            ${dl!==null?`<span class="stat" style="font-size:11px;padding:1px 8px;border-radius:20px;font-weight:500;background:${dl<0?'var(--danger-bg)':dl<=7?'var(--warn-bg)':'var(--bg3)'};color:${dl<0?'var(--danger)':dl<=7?'var(--warn)':'var(--text3)'}">📅 ${dl<0?`${Math.abs(dl)}d overdue`:dl===0?'Today':`${dl}d`}</span>`:''}
+            ${c.driveLink?`<a href="${c.driveLink}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📎 Drive ↗</a>`:''}
+          </div>
+        </div>
+      </div>
+      ${c.brief?`<div class="brief-bar">${c.brief}</div>`:''}
+      <div class="tabs">
+        ${['tasks','notes','finances','meetings'].map(t=>`<button class="tab ${currentTab===t?'active':''}" onclick="switchTab('${t}')" style="${currentTab===t?`border-bottom:2px solid ${col.text}`:''}">
+          ${{tasks:'✅ Tasks',notes:'📌 Notes',finances:'💰 Finances',meetings:'🗒️ Meetings'}[t]}
+        </button>`).join('')}
+      </div>
+    </div>
+  </header>
+  <div class="detail-main">
+    ${currentTab==='tasks'?renderTasks(c):currentTab==='notes'?renderNotes(c):currentTab==='finances'?renderFinances(c):renderMeetings(c)}
+  </div>`;
+}
+
+// ============== TASKS ==============
+let taskFilter='all', showTaskForm=false, expandedTask=null;
+function renderTasks(c){
+  const tasks=c.tasks||[];
+  const col=getColor(c.color);
+  const counts={all:tasks.length,pending:tasks.filter(t=>!t.done).length,urgent:tasks.filter(t=>t.priority==='urgent'&&!t.done).length,done:tasks.filter(t=>t.done).length};
+  const filtered=tasks.filter(t=>{
+    if(taskFilter==='done') return t.done;
+    if(taskFilter==='pending') return !t.done;
+    if(taskFilter==='urgent') return t.priority==='urgent'&&!t.done;
+    return true;
+  });
+  return `
+  <div class="filters">
+    ${['all','pending','urgent','done'].map(f=>`<button class="filter ${taskFilter===f?'active':''}" onclick="setTaskFilter('${f}')">${f.charAt(0).toUpperCase()+f.slice(1)} (${counts[f]})</button>`).join('')}
+    <div style="flex:1"></div>
+    <button class="btn primary" onclick="toggleTaskForm()">+ Add Task</button>
+  </div>
+  ${showTaskForm?`<div class="add-form fade">
+    <div class="form-row"><input id="tText" placeholder="Task description…" onkeydown="if(event.key==='Enter')saveTask()"></div>
+    <div class="form-2" style="margin-bottom:12px">
+      <input id="tAssignee" placeholder="Assigned to…">
+      <input id="tDue" type="date">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      ${PRIORITIES.map(p=>`<button class="filter" id="prio_${p}" onclick="selectPrio('${p}')">${PRIORITY_LABELS[p]}</button>`).join('')}
+      <div style="flex:1"></div>
+      <button class="btn sm" onclick="toggleTaskForm()">Cancel</button>
+      <button class="btn primary sm" onclick="saveTask()">Add</button>
+    </div>
+  </div>`:''}
+  ${filtered.length===0?`<div class="empty"><div class="icon">✅</div><p>No tasks here.</p></div>`:''}
+  ${filtered.map(task=>{
+    const ds=dueStatus(task.due,task.done);
+    const exp=expandedTask===task.id;
+    return `<div class="item fade" style="opacity:${task.done?0.65:1};border-color:${task.priority==='urgent'&&!task.done?'rgba(192,57,43,0.25)':'var(--border)'}">
+      <div class="item-body">
+        <div class="check ${task.done?'done':''}" onclick="toggleTask('${task.id}')">${task.done?'✓':''}</div>
+        <div class="item-content">
+          <div class="item-title ${task.done?'done':''}">${task.text}</div>
+          <div class="item-meta">
+            <span class="badge ${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
+            ${task.assignee?`<span style="font-size:11px;color:var(--text3)">👤 ${task.assignee}</span>`:''}
+            ${ds?`<span class="due" style="background:${ds.bg};color:${ds.color}">${ds.label}</span>`:''}
+            ${(task.comments||[]).length>0?`<span style="font-size:11px;color:var(--text3)">💬 ${task.comments.length}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn ghost sm" onclick="toggleExpand('${task.id}')">${exp?'▲':'▼'}</button>
+          <button class="btn ghost sm danger" onclick="removeTask('${task.id}')">✕</button>
+        </div>
+      </div>
+      ${exp?`<div class="comments-section fade">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Comments</div>
+        ${(task.comments||[]).length===0?'<p style="font-size:12px;color:var(--text3);margin-bottom:8px">No comments yet.</p>':''}
+        ${(task.comments||[]).map(cm=>`<div class="comment"><p>${cm.text}</p><span>${new Date(cm.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span></div>`).join('')}
+        <div class="add-comment">
+          <input id="comment_${task.id}" placeholder="Add a comment…" onkeydown="if(event.key==='Enter')addComment('${task.id}')">
+          <button class="btn primary sm" onclick="addComment('${task.id}')">Add</button>
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('')}`;
+}
+
+// ============== NOTES ==============
+let showNoteForm=false;
+function renderNotes(c){
+  const notes=c.notes||[];
+  const pinned=notes.filter(n=>n.pinned&&!n.done);
+  const active=notes.filter(n=>!n.pinned&&!n.done);
+  const done=notes.filter(n=>n.done);
+  const noteCard=n=>`<div class="item fade" style="opacity:${n.done?0.55:1};border-color:${n.pinned?'rgba(176,128,32,0.3)':'var(--border)'}">
+    <div class="item-body" style="align-items:flex-start">
+      <div style="flex:1">
+        <p style="font-size:13px;color:var(--text);line-height:1.7;text-decoration:${n.done?'line-through':'none'};margin-bottom:8px">${n.text}</p>
+        <div class="item-meta">
+          <span style="font-size:10px;color:var(--text3)">${fmtDate(n.createdAt)}</span>
+          ${n.pinned?'<span class="badge pinned">📌 Pinned</span>':''}
+          ${n.done?'<span class="badge success">✅ Done</span>':''}
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;margin-left:8px">
+        <button class="btn ghost sm" onclick="toggleNote('${n.id}','pinned')" title="${n.pinned?'Unpin':'Pin'}">${n.pinned?'📌':'📍'}</button>
+        <button class="btn ghost sm" onclick="toggleNote('${n.id}','done')" title="${n.done?'Reopen':'Done'}">${n.done?'↩️':'✅'}</button>
+        <button class="btn ghost sm danger" onclick="removeNote('${n.id}')">✕</button>
+      </div>
+    </div>
+  </div>`;
+  return `
+  <div class="toolbar">
+    <button class="btn primary" onclick="toggleNoteForm()">+ Add Note</button>
+  </div>
+  ${showNoteForm?`<div class="add-form fade">
+    <div class="form-row"><textarea id="noteText" placeholder="Write your note…"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn sm" onclick="toggleNoteForm()">Cancel</button>
+      <button class="btn primary sm" onclick="saveNote()">Save Note</button>
+    </div>
+  </div>`:''}
+  ${notes.length===0&&!showNoteForm?`<div class="empty"><div class="icon">📌</div><p>No notes yet.</p></div>`:''}
+  ${pinned.length>0?`<div class="section-label" style="color:var(--warn)">📌 Pinned</div>${pinned.map(noteCard).join('')}`:''}
+  ${active.length>0?`${pinned.length>0?'<div class="section-label">Notes</div>':''}${active.map(noteCard).join('')}`:''}
+  ${done.length>0?`<div class="section-label">✅ Completed</div>${done.map(noteCard).join('')}`:''}`;
+}
+
+// ============== FINANCES ==============
+let showFinForm=false;
+function renderFinances(c){
+  const fins=c.finances||[];
+  const invoiced=fins.filter(f=>f.type==='Invoice').reduce((s,f)=>s+Number(f.amount||0),0);
+  const paid=fins.filter(f=>f.type==='Payment').reduce((s,f)=>s+Number(f.amount||0),0);
+  const outstanding=invoiced-paid;
+  return `
+  <div class="finance-summary">
+    ${[{label:'Total Invoiced',val:invoiced,color:'var(--accent)'},{label:'Total Received',val:paid,color:'var(--success)'},{label:'Outstanding',val:outstanding,color:outstanding>0?'var(--warn)':'var(--text3)'}].map(s=>`
+    <div class="fin-card">
+      <div class="fin-label">${s.label}</div>
+      <div class="fin-amount" style="color:${s.color}">$${fmt(s.val)}</div>
+    </div>`).join('')}
+  </div>
+  <div class="toolbar">
+    <button class="btn primary" onclick="toggleFinForm()">+ Add Entry</button>
+  </div>
+  ${showFinForm?`<div class="add-form fade">
+    <div class="form-2" style="margin-bottom:12px">
+      <div><label class="form-label">Type</label><select id="fType">${FIN_TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
+      <div><label class="form-label">Status</label><select id="fStatus">${FIN_STATUS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row"><label class="form-label">Description</label><input id="fDesc" placeholder="e.g. Q2 Audit Services"></div>
+    <div class="form-2" style="margin-bottom:12px">
+      <div><label class="form-label">Amount (USD)</label><input id="fAmount" type="number" placeholder="0.00"></div>
+      <div><label class="form-label">Date</label><input id="fDate" type="date"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Notes</label><input id="fNotes" placeholder="Optional…"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn sm" onclick="toggleFinForm()">Cancel</button>
+      <button class="btn primary sm" onclick="saveFin()">Add Entry</button>
+    </div>
+  </div>`:''}
+  ${fins.length===0&&!showFinForm?`<div class="empty"><div class="icon">💰</div><p>No financial entries yet.</p></div>`:''}
+  ${fins.map(f=>{
+    const sc={Paid:'var(--success)',Pending:'var(--accent)',Overdue:'var(--danger)',Partial:'var(--warn)'};
+    const sb={Paid:'var(--success-bg)',Pending:'var(--accent-bg)',Overdue:'var(--danger-bg)',Partial:'var(--warn-bg)'};
+    return `<div class="item fade">
+      <div class="item-body">
+        <div style="flex:1">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-weight:500;font-size:13px">${f.description}</span>
+            <span class="badge" style="background:var(--bg3);color:var(--text3)">${f.type}</span>
+            <span class="badge" style="background:${sb[f.status]||'var(--bg3)'};color:${sc[f.status]||'var(--text3)'}">${f.status}</span>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:18px;font-weight:600;font-family:var(--mono);color:${f.type==='Payment'?'var(--success)':'var(--text)'}">${f.type==='Payment'?'+':''}$${fmt(f.amount)}</span>
+            ${f.date?`<span style="font-size:11px;color:var(--text3)">${fmtDate(f.date)}</span>`:''}
+            ${f.notes?`<span style="font-size:11px;color:var(--text3);font-style:italic">${f.notes}</span>`:''}
+          </div>
+        </div>
+        <button class="btn ghost sm danger" onclick="removeFin('${f.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+// ============== MEETINGS ==============
+let showMeetForm=false;
+function renderMeetings(c){
+  const meets=c.meetings||[];
+  return `
+  <div class="toolbar">
+    <button class="btn primary" onclick="toggleMeetForm()">+ Add Entry</button>
+  </div>
+  ${showMeetForm?`<div class="add-form fade">
+    <div class="form-2" style="margin-bottom:12px">
+      <div><label class="form-label">Type</label><select id="mType">${MEETING_TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
+      <div><label class="form-label">Date</label><input id="mDate" type="date"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Title / Subject</label><input id="mTitle" placeholder="e.g. Q2 Financial Review"></div>
+    <div class="form-row"><label class="form-label">Attendees</label><input id="mAttendees" placeholder="e.g. Rania, CFO, Karim"></div>
+    <div class="form-row"><label class="form-label">Notes / Summary</label><textarea id="mNotes" placeholder="Key points, decisions, action items…"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn sm" onclick="toggleMeetForm()">Cancel</button>
+      <button class="btn primary sm" onclick="saveMeet()">Save</button>
+    </div>
+  </div>`:''}
+  ${meets.length===0&&!showMeetForm?`<div class="empty"><div class="icon">🗒️</div><p>No meetings logged yet.</p></div>`:''}
+  ${meets.map(m=>`<div class="item fade">
+    <div class="item-body">
+      <div style="width:38px;height:38px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${MEETING_ICONS[m.type]||'📋'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-weight:600;font-size:13px">${m.title}</span>
+          <span class="badge" style="background:var(--bg3);color:var(--text3)">${m.type}</span>
+          ${m.date?`<span style="font-size:11px;color:var(--text3)">${fmtDate(m.date)}</span>`:''}
+        </div>
+        ${m.attendees?`<div style="font-size:12px;color:var(--text3);margin-bottom:6px">👥 ${m.attendees}</div>`:''}
+        ${m.notes?`<div style="font-size:12.5px;color:var(--text2);line-height:1.7;padding:8px 12px;background:var(--bg);border-radius:6px;border-left:2px solid var(--accent)">${m.notes}</div>`:''}
+      </div>
+      <button class="btn ghost sm danger" onclick="removeMeet('${m.id}')">✕</button>
+    </div>
+  </div>`).join('')}`;
+}
+
+// ============== COMPANY MODAL ==============
+let editingCompany=null, selectedColor='terracotta';
+function renderCompanyModal(){
+  const c=editingCompany;
+  if(!window._showCompanyModal) return '';
+  return `<div class="overlay" onclick="closeCompanyModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2>${c?'Edit Company':'Add Company'}</h2>
+      <div class="form-row"><label class="form-label">Company Name *</label><input id="cName" value="${c?.name||''}" placeholder="e.g. Al-Faris Holdings" autofocus></div>
+      <div class="form-row"><label class="form-label">Accounting Method</label><select id="cMethod">${METHODS.map(m=>`<option ${c?.method===m?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="form-row"><label class="form-label">Brief / Scope of Work</label><textarea id="cBrief" placeholder="What do we do for this company?">${c?.brief||''}</textarea></div>
+      <div class="form-2" style="margin-bottom:14px">
+        <div><label class="form-label">Key Deadline</label><input id="cDeadline" type="date" value="${c?.deadline||''}"></div>
+        <div><label class="form-label">Google Drive Link</label><input id="cDrive" value="${c?.driveLink||''}" placeholder="https://drive.google.com/…"></div>
+      </div>
+      <div class="form-row"><label class="form-label">Color</label>
+        <div class="color-opts">${COLORS.map(col=>`<div class="color-dot" style="background:${col.bg};border-color:${selectedColor===col.id?col.text:'transparent'}" onclick="pickColor('${col.id}')"></div>`).join('')}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeCompanyModal()">Cancel</button>
+        <button class="btn primary" onclick="doSaveCompany()">Save Company</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+let _deleteId=null;
+function renderDeleteModal(){
+  if(!_deleteId) return '';
+  return `<div class="overlay" onclick="_deleteId=null;render()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width:360px">
+      <h2>Delete company?</h2>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:4px">This will permanently delete the company and all its data.</p>
+      <div class="modal-footer">
+        <button class="btn" onclick="_deleteId=null;render()">Cancel</button>
+        <button class="btn danger" onclick="doDelete()">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============== EVENTS ==============
+function attachEvents(){
+  // set active priority button
+  if(showTaskForm){
+    setTimeout(()=>{
+      PRIORITIES.forEach(p=>{
+        const el=document.getElementById('prio_'+p);
+        if(el){ el.classList.toggle('active', p===_selectedPrio); }
+      });
+    },0);
+  }
+}
+
+let _selectedPrio='normal';
+function selectPrio(p){ _selectedPrio=p; attachEvents(); }
+function toggleTaskForm(){ showTaskForm=!showTaskForm; _selectedPrio='normal'; render(); }
+function toggleNoteForm(){ showNoteForm=!showNoteForm; render(); }
+function toggleFinForm(){ showFinForm=!showFinForm; render(); }
+function toggleMeetForm(){ showMeetForm=!showMeetForm; render(); }
+function setTaskFilter(f){ taskFilter=f; render(); }
+function toggleExpand(id){ expandedTask=expandedTask===id?null:id; render(); }
+function switchTab(t){ currentTab=t; showTaskForm=false; showNoteForm=false; showFinForm=false; showMeetForm=false; render(); }
+function selectCompany(id){ selectedCompany=companies.find(c=>c.id===id); currentTab='tasks'; render(); }
+function goBack(){ selectedCompany=null; render(); }
+function openModal(){ window._showCompanyModal=true; editingCompany=null; selectedColor='terracotta'; render(); }
+function openEditCompany(id){ window._showCompanyModal=true; editingCompany=companies.find(c=>c.id===id); selectedColor=editingCompany?.color||'terracotta'; render(); }
+function closeCompanyModal(){ window._showCompanyModal=false; editingCompany=null; render(); }
+function pickColor(id){ selectedColor=id; document.querySelectorAll('.color-dot').forEach((d,i)=>{ d.style.borderColor=COLORS[i].id===id?COLORS[i].text:'transparent'; }); }
+function confirmDelete(id){ _deleteId=id; render(); }
+async function doDelete(){ if(_deleteId){ await deleteCompany(_deleteId); if(selectedCompany?.id===_deleteId) selectedCompany=null; _deleteId=null; } }
+
+async function doSaveCompany(){
+  const name=document.getElementById('cName')?.value?.trim();
+  if(!name) return;
+  const data={name, method:document.getElementById('cMethod').value, brief:document.getElementById('cBrief').value.trim(), color:selectedColor, deadline:document.getElementById('cDeadline').value, driveLink:document.getElementById('cDrive').value.trim()};
+  if(editingCompany){ await saveCompany(editingCompany.id, data); }
+  else { await addCompany({...data, tasks:[], notes:[], finances:[], meetings:[]}); }
+  window._showCompanyModal=false; editingCompany=null;
+}
+
+async function toggleTask(id){
+  const c=selectedCompany; const tasks=c.tasks||[];
+  const updated=tasks.map(t=>t.id===id?{...t,done:!t.done}:t);
+  await saveCompany(c.id,{tasks:updated});
+}
+async function removeTask(id){
+  const c=selectedCompany;
+  await saveCompany(c.id,{tasks:(c.tasks||[]).filter(t=>t.id!==id)});
+}
+async function saveTask(){
+  const text=document.getElementById('tText')?.value?.trim();
+  if(!text) return;
+  const c=selectedCompany;
+  const task={id:Date.now(),text,assignee:document.getElementById('tAssignee')?.value?.trim()||'',due:document.getElementById('tDue')?.value||'',priority:_selectedPrio,done:false,comments:[],createdAt:new Date().toISOString()};
+  await saveCompany(c.id,{tasks:[task,...(c.tasks||[])]});
+  showTaskForm=false; _selectedPrio='normal';
+}
+async function addComment(taskId){
+  const el=document.getElementById('comment_'+taskId);
+  const text=el?.value?.trim();
+  if(!text) return;
+  const c=selectedCompany;
+  const updated=(c.tasks||[]).map(t=>t.id==taskId?{...t,comments:[...(t.comments||[]),{id:Date.now(),text,at:new Date().toISOString()}]}:t);
+  await saveCompany(c.id,{tasks:updated});
+}
+
+async function toggleNote(id,field){
+  const c=selectedCompany;
+  const updated=(c.notes||[]).map(n=>n.id==id?{...n,[field]:!n[field]}:n);
+  await saveCompany(c.id,{notes:updated});
+}
+async function removeNote(id){
+  const c=selectedCompany;
+  await saveCompany(c.id,{notes:(c.notes||[]).filter(n=>n.id!=id)});
+}
+async function saveNote(){
+  const text=document.getElementById('noteText')?.value?.trim();
+  if(!text) return;
+  const c=selectedCompany;
+  const note={id:Date.now(),text,pinned:false,done:false,createdAt:new Date().toISOString()};
+  await saveCompany(c.id,{notes:[note,...(c.notes||[])]});
+  showNoteForm=false;
+}
+
+async function saveFin(){
+  const desc=document.getElementById('fDesc')?.value?.trim();
+  const amount=document.getElementById('fAmount')?.value;
+  if(!desc||!amount) return;
+  const c=selectedCompany;
+  const entry={id:Date.now(),type:document.getElementById('fType').value,status:document.getElementById('fStatus').value,description:desc,amount,date:document.getElementById('fDate').value,notes:document.getElementById('fNotes')?.value?.trim()||'',createdAt:new Date().toISOString()};
+  await saveCompany(c.id,{finances:[entry,...(c.finances||[])]});
+  showFinForm=false;
+}
+async function removeFin(id){
+  const c=selectedCompany;
+  await saveCompany(c.id,{finances:(c.finances||[]).filter(f=>f.id!=id)});
+}
+
+async function saveMeet(){
+  const title=document.getElementById('mTitle')?.value?.trim();
+  if(!title) return;
+  const c=selectedCompany;
+  const m={id:Date.now(),type:document.getElementById('mType').value,title,date:document.getElementById('mDate').value,attendees:document.getElementById('mAttendees')?.value?.trim()||'',notes:document.getElementById('mNotes')?.value?.trim()||'',createdAt:new Date().toISOString()};
+  await saveCompany(c.id,{meetings:[m,...(c.meetings||[])]});
+  showMeetForm=false;
+}
+async function removeMeet(id){
+  const c=selectedCompany;
+  await saveCompany(c.id,{meetings:(c.meetings||[]).filter(m=>m.id!=id)});
+}
+
+// ============== INIT ==============
+window._showCompanyModal=false;
+loadCompanies();
+</script>
+</body>
+</html>

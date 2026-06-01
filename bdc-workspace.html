@@ -693,7 +693,7 @@ async function removeUpdate(id){
 }
 function toggleMeetForm(){ showMeetForm=!showMeetForm; render(); }
 function setTaskFilter(f){ taskFilter=f; render(); }
-function toggleExpand(id){ expandedTask=expandedTask===id?null:id; render(); }
+function toggleExpand(id){ expandedTask=String(expandedTask)===String(id)?null:id; render(); }
 function switchTab(t){ currentTab=t; showTaskForm=false; showNoteForm=false; showFinForm=false; showMeetForm=false; showUpdateForm=false; render(); }
 function selectCompany(id){ selectedCompany=companies.find(c=>c.id===id); currentTab='tasks'; render(); }
 function goBack(){ selectedCompany=null; render(); }
@@ -715,12 +715,17 @@ async function doSaveCompany(){
 
 async function toggleTask(id){
   const c=selectedCompany; const tasks=c.tasks||[];
-  const updated=tasks.map(t=>t.id===id?{...t,done:!t.done}:t);
+  const updated=tasks.map(t=>String(t.id)===String(id)?{...t,done:!t.done}:t);
   await saveCompany(c.id,{tasks:updated});
+  selectedCompany={...c,tasks:updated};
+  render();
 }
 async function removeTask(id){
   const c=selectedCompany;
-  await saveCompany(c.id,{tasks:(c.tasks||[]).filter(t=>t.id!==id)});
+  const updated=(c.tasks||[]).filter(t=>String(t.id)!==String(id));
+  await saveCompany(c.id,{tasks:updated});
+  selectedCompany={...c,tasks:updated};
+  render();
 }
 async function saveTask(){
   const text=document.getElementById('tText')?.value?.trim();
@@ -735,18 +740,25 @@ async function addComment(taskId){
   const text=el?.value?.trim();
   if(!text) return;
   const c=selectedCompany;
-  const updated=(c.tasks||[]).map(t=>t.id==taskId?{...t,comments:[...(t.comments||[]),{id:Date.now(),text,at:new Date().toISOString()}]}:t);
+  const updated=(c.tasks||[]).map(t=>String(t.id)===String(taskId)?{...t,comments:[...(t.comments||[]),{id:Date.now(),text,at:new Date().toISOString()}]}:t);
   await saveCompany(c.id,{tasks:updated});
+  selectedCompany={...c,tasks:updated};
+  render();
 }
 
 async function toggleNote(id,field){
   const c=selectedCompany;
-  const updated=(c.notes||[]).map(n=>n.id==id?{...n,[field]:!n[field]}:n);
+  const updated=(c.notes||[]).map(n=>String(n.id)===String(id)?{...n,[field]:!n[field]}:n);
   await saveCompany(c.id,{notes:updated});
+  selectedCompany={...c,notes:updated};
+  render();
 }
 async function removeNote(id){
   const c=selectedCompany;
-  await saveCompany(c.id,{notes:(c.notes||[]).filter(n=>n.id!=id)});
+  const updated=(c.notes||[]).filter(n=>String(n.id)!==String(id));
+  await saveCompany(c.id,{notes:updated});
+  selectedCompany={...c,notes:updated};
+  render();
 }
 async function saveNote(){
   const text=document.getElementById('noteText')?.value?.trim();
@@ -768,7 +780,10 @@ async function saveFin(){
 }
 async function removeFin(id){
   const c=selectedCompany;
-  await saveCompany(c.id,{finances:(c.finances||[]).filter(f=>f.id!=id)});
+  const updated=(c.finances||[]).filter(f=>String(f.id)!==String(id));
+  await saveCompany(c.id,{finances:updated});
+  selectedCompany={...c,finances:updated};
+  render();
 }
 
 async function saveMeet(){
@@ -781,7 +796,10 @@ async function saveMeet(){
 }
 async function removeMeet(id){
   const c=selectedCompany;
-  await saveCompany(c.id,{meetings:(c.meetings||[]).filter(m=>m.id!=id)});
+  const updated=(c.meetings||[]).filter(m=>String(m.id)!==String(id));
+  await saveCompany(c.id,{meetings:updated});
+  selectedCompany={...c,meetings:updated};
+  render();
 }
 
 // ============== INIT ==============

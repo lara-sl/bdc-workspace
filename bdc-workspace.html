@@ -572,7 +572,6 @@ function renderUpdates(c){
     }).join('')}
   </div>`;
 }
-
 // ============== MEETINGS ==============
 let showMeetForm=false;
 function renderMeetings(c){
@@ -693,7 +692,7 @@ async function removeUpdate(id){
 }
 function toggleMeetForm(){ showMeetForm=!showMeetForm; render(); }
 function setTaskFilter(f){ taskFilter=f; render(); }
-function toggleExpand(id){ expandedTask=String(expandedTask)===String(id)?null:id; render(); }
+function toggleExpand(id){ expandedTask=String(expandedTask)===String(id)?null:String(id); render(); }
 function switchTab(t){ currentTab=t; showTaskForm=false; showNoteForm=false; showFinForm=false; showMeetForm=false; showUpdateForm=false; render(); }
 function selectCompany(id){ selectedCompany=companies.find(c=>c.id===id); currentTab='tasks'; render(); }
 function goBack(){ selectedCompany=null; render(); }

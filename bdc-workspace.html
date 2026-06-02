@@ -217,8 +217,6 @@ const METHODS = ['Accrual Basis','Cash Basis','Modified Cash Basis','Tax Basis',
 const PRIORITIES = ['urgent','normal','low'];
 const PRIORITY_LABELS = {urgent:'🔴 Urgent', normal:'🔵 Normal', low:'⚪ Low'};
 const MEETING_TYPES = ['Meeting','Call','Email Thread','Site Visit','Other'];
-const UPDATE_TYPES = ['General','Progress','Issue','Decision','Reminder'];
-const UPDATE_ICONS = {General:'📝',Progress:'📈',Issue:'⚠️',Decision:'✅',Reminder:'🔔'};
 const MEETING_ICONS = {Meeting:'🤝',Call:'📞','Email Thread':'📧','Site Visit':'🏢',Other:'📋'};
 const FIN_TYPES = ['Invoice','Payment','Expense','Other'];
 const FIN_STATUS = ['Pending','Paid','Overdue','Partial'];
@@ -349,14 +347,14 @@ function renderDetail(){
       </div>
       ${c.brief?`<div class="brief-bar">${c.brief}</div>`:''}
       <div class="tabs">
-        ${['tasks','notes','finances','meetings','updates'].map(t=>`<button class="tab ${currentTab===t?'active':''}" onclick="switchTab('${t}')" style="${currentTab===t?`border-bottom:2px solid ${col.text}`:''}">
-          ${{tasks:'✅ Tasks',notes:'📌 Notes',finances:'💰 Finances',meetings:'🗒️ Meetings',updates:'🔄 Updates'}[t]}
+        ${['tasks','notes','finances','meetings'].map(t=>`<button class="tab ${currentTab===t?'active':''}" onclick="switchTab('${t}')" style="${currentTab===t?`border-bottom:2px solid ${col.text}`:''}">
+          ${{tasks:'✅ Tasks',notes:'📌 Notes',finances:'💰 Finances',meetings:'🗒️ Meetings'}[t]}
         </button>`).join('')}
       </div>
     </div>
   </header>
   <div class="detail-main">
-    ${currentTab==='tasks'?renderTasks(c):currentTab==='notes'?renderNotes(c):currentTab==='finances'?renderFinances(c):currentTab==='meetings'?renderMeetings(c):renderUpdates(c)}
+    ${currentTab==='tasks'?renderTasks(c):currentTab==='notes'?renderNotes(c):currentTab==='finances'?renderFinances(c):renderMeetings(c)}
   </div>`;
 }
 
@@ -394,7 +392,7 @@ function renderTasks(c){
   ${filtered.length===0?`<div class="empty"><div class="icon">✅</div><p>No tasks here.</p></div>`:''}
   ${filtered.map(task=>{
     const ds=dueStatus(task.due,task.done);
-    const exp=expandedTask===task.id;
+    const exp=String(expandedTask)===String(task.id);
     return `<div class="item fade" style="opacity:${task.done?0.65:1};border-color:${task.priority==='urgent'&&!task.done?'rgba(192,57,43,0.25)':'var(--border)'}">
       <div class="item-body">
         <div class="check ${task.done?'done':''}" onclick="toggleTask('${task.id}')">${task.done?'✓':''}</div>
@@ -524,54 +522,6 @@ function renderFinances(c){
   }).join('')}`;
 }
 
-
-// ============== UPDATES ==============
-let showUpdateForm=false;
-function renderUpdates(c){
-  const updates=(c.updates||[]).slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-  return `
-  <div class="toolbar">
-    <button class="btn primary" onclick="toggleUpdateForm()">+ Add Update</button>
-  </div>
-  ${showUpdateForm?`<div class="add-form fade">
-    <div class="form-2" style="margin-bottom:12px">
-      <div><label class="form-label">Type</label><select id="uType">${UPDATE_TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
-      <div><label class="form-label">Date</label><input id="uDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
-    </div>
-    <div class="form-row"><label class="form-label">Title</label><input id="uTitle" placeholder="e.g. Client confirmed Q2 numbers"></div>
-    <div class="form-row"><label class="form-label">Details</label><textarea id="uDetails" placeholder="Add more details…"></textarea></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn sm" onclick="toggleUpdateForm()">Cancel</button>
-      <button class="btn primary sm" onclick="saveUpdate()">Save</button>
-    </div>
-  </div>`:''}
-  ${updates.length===0&&!showUpdateForm?`<div class="empty"><div class="icon">🔄</div><p>No updates yet.</p></div>`:''}
-  <div style="position:relative;padding-left:20px">
-    ${updates.length>0?`<div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--border2);border-radius:2px"></div>`:''}
-    ${updates.map((u,i)=>{
-      const col=getColor(c.color);
-      const isToday=u.date===new Date().toISOString().split('T')[0];
-      return `<div class="fade" style="position:relative;margin-bottom:16px">
-        <div style="position:absolute;left:-20px;top:14px;width:12px;height:12px;border-radius:50%;background:${i===0?col.text:'var(--bg3)'};border:2px solid ${i===0?col.text:'var(--border2)'};z-index:1"></div>
-        <div class="item" style="margin-bottom:0;border-color:${i===0?col.border:'var(--border)'}">
-          <div class="item-body">
-            <div style="width:32px;height:32px;border-radius:7px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${UPDATE_ICONS[u.type]||'📝'}</div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-                <span style="font-weight:600;font-size:13px">${u.title}</span>
-                <span class="badge" style="background:var(--bg3);color:var(--text3)">${u.type}</span>
-                <span style="font-size:11px;color:${isToday?'var(--accent)':'var(--text3)'};font-weight:${isToday?600:400}">${isToday?'Today':fmtDate(u.date)}</span>
-                ${i===0?`<span class="badge" style="background:var(--accent-bg);color:var(--accent)">Latest</span>`:''}
-              </div>
-              ${u.details?`<div style="font-size:12.5px;color:var(--text2);line-height:1.7;padding:8px 12px;background:var(--bg);border-radius:6px;border-left:2px solid ${col.text}">${u.details}</div>`:''}
-            </div>
-            <button class="btn ghost sm danger" onclick="removeUpdate('${u.id}')">✕</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('')}
-  </div>`;
-}
 // ============== MEETINGS ==============
 let showMeetForm=false;
 function renderMeetings(c){
@@ -670,30 +620,10 @@ function selectPrio(p){ _selectedPrio=p; attachEvents(); }
 function toggleTaskForm(){ showTaskForm=!showTaskForm; _selectedPrio='normal'; render(); }
 function toggleNoteForm(){ showNoteForm=!showNoteForm; render(); }
 function toggleFinForm(){ showFinForm=!showFinForm; render(); }
-
-function toggleUpdateForm(){ showUpdateForm=!showUpdateForm; render(); }
-async function saveUpdate(){
-  const title=document.getElementById('uTitle')?.value?.trim();
-  if(!title) return;
-  const c=selectedCompany;
-  const u={id:Date.now(),type:document.getElementById('uType').value,title,date:document.getElementById('uDate').value,details:document.getElementById('uDetails')?.value?.trim()||'',createdAt:new Date().toISOString()};
-  const updated=[u,...(c.updates||[])];
-  await saveCompany(c.id,{updates:updated});
-  selectedCompany={...c,updates:updated};
-  showUpdateForm=false;
-  render();
-}
-async function removeUpdate(id){
-  const c=selectedCompany;
-  const updated=(c.updates||[]).filter(u=>String(u.id)!==String(id));
-  await saveCompany(c.id,{updates:updated});
-  selectedCompany={...c,updates:updated};
-  render();
-}
 function toggleMeetForm(){ showMeetForm=!showMeetForm; render(); }
 function setTaskFilter(f){ taskFilter=f; render(); }
 function toggleExpand(id){ expandedTask=String(expandedTask)===String(id)?null:String(id); render(); }
-function switchTab(t){ currentTab=t; showTaskForm=false; showNoteForm=false; showFinForm=false; showMeetForm=false; showUpdateForm=false; render(); }
+function switchTab(t){ currentTab=t; showTaskForm=false; showNoteForm=false; showFinForm=false; showMeetForm=false; render(); }
 function selectCompany(id){ selectedCompany=companies.find(c=>c.id===id); currentTab='tasks'; render(); }
 function goBack(){ selectedCompany=null; render(); }
 function openModal(){ window._showCompanyModal=true; editingCompany=null; selectedColor='terracotta'; render(); }
@@ -779,10 +709,7 @@ async function saveFin(){
 }
 async function removeFin(id){
   const c=selectedCompany;
-  const updated=(c.finances||[]).filter(f=>String(f.id)!==String(id));
-  await saveCompany(c.id,{finances:updated});
-  selectedCompany={...c,finances:updated};
-  render();
+  await saveCompany(c.id,{finances:(c.finances||[]).filter(f=>f.id!=id)});
 }
 
 async function saveMeet(){
@@ -795,10 +722,7 @@ async function saveMeet(){
 }
 async function removeMeet(id){
   const c=selectedCompany;
-  const updated=(c.meetings||[]).filter(m=>String(m.id)!==String(id));
-  await saveCompany(c.id,{meetings:updated});
-  selectedCompany={...c,meetings:updated};
-  render();
+  await saveCompany(c.id,{meetings:(c.meetings||[]).filter(m=>m.id!=id)});
 }
 
 // ============== INIT ==============

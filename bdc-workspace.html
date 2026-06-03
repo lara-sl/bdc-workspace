@@ -101,6 +101,13 @@ input::placeholder,textarea::placeholder{color:var(--text3)}
 .toolbar{display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fade{animation:fadeIn 0.2s ease}
+
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:40px;width:100%;max-width:380px;box-shadow:var(--shadow)}
+.login-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:20px;font-weight:700;color:#fff;margin:0 auto 24px;box-shadow:0 8px 24px rgba(26,86,160,0.3)}
+.login-title{font-family:var(--display);font-size:22px;font-weight:700;text-align:center;margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--text3);text-align:center;margin-bottom:28px}
+.login-error{font-size:12px;color:var(--danger);background:var(--danger-bg);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:14px;text-align:center;display:none}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:10px}
 @media(max-width:600px){.grid{grid-template-columns:1fr}.form-2{grid-template-columns:1fr}.finance-summary{grid-template-columns:1fr}.detail-top{flex-wrap:wrap}input.search{width:120px}}
 </style>
@@ -234,7 +241,7 @@ function renderList(){
   <header class="header"><div class="header-inner">
     <div class="logo">BDC Workspace<span>${companies.length} ${companies.length===1?'company':'companies'}</span></div>
     <input class="search" placeholder="Search…" value="${search}" oninput="search=this.value;render()">
-    <button class="btn primary" onclick="openCModal()">+ Add Company</button>
+    <button class="btn primary" onclick="openCModal()">+ Add Company</button><button class="btn ghost" onclick="logout()" style="color:var(--text3)" title="Sign out">⎋ Sign out</button>
   </div></header>
   <div class="main">
     ${f.length===0?`<div class="empty"><div class="icon">🏢</div><p>${search?'No results.':'No companies yet.'}</p></div>`:`
@@ -633,9 +640,59 @@ async function saveUpdate(){
 }
 async function removeUpdate(id){await updateSel('updates',(sel.updates||[]).filter(u=>String(u.id)!==String(id)));}
 
+
+// ── Login ──────────────────────────────────────
+const USERS = [
+  { username: 'Lara', password: '@1@2@3' }
+  // Add more users here if needed:
+  // { username: 'lara', password: 'yourpassword' }
+];
+
+let loggedIn = sessionStorage.getItem('bdc_auth') === 'true';
+
+function renderLogin(error=''){
+  document.getElementById('app').innerHTML = `
+  <div class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">BDC</div>
+      <div class="login-title">BDC Workspace</div>
+      <div class="login-sub">Business Development Center</div>
+      ${error?`<div class="login-error" style="display:block">${error}</div>`:''}
+      <div class="form-row"><label class="form-label">Username</label><input id="lUser" placeholder="Enter username" onkeydown="if(event.key==='Enter')document.getElementById('lPass').focus()"></div>
+      <div class="form-row"><label class="form-label">Password</label><input id="lPass" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;padding:10px;font-size:14px;margin-top:8px" onclick="doLogin()">Sign In</button>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById('lUser')?.focus(),100);
+}
+
+function doLogin(){
+  const u=document.getElementById('lUser')?.value?.trim();
+  const p=document.getElementById('lPass')?.value;
+  const match=USERS.find(x=>x.username===u&&x.password===p);
+  if(match){
+    sessionStorage.setItem('bdc_auth','true');
+    loggedIn=true;
+    loadCompanies();
+  } else {
+    renderLogin('Incorrect username or password.');
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('bdc_auth');
+  loggedIn=false;
+  renderLogin();
+}
+// ───────────────────────────────────────────────
+
 // ── Init ──
-document.getElementById('app').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px"><div style="width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:20px;font-weight:700;color:#fff;box-shadow:0 8px 24px rgba(26,86,160,0.3)">BDC</div><p style="color:var(--text3);font-size:13px">Loading workspace…</p></div>`;
-loadCompanies();
+if(loggedIn){ 
+  document.getElementById('app').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px"><div style="width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:20px;font-weight:700;color:#fff;box-shadow:0 8px 24px rgba(26,86,160,0.3)">BDC</div><p style="color:var(--text3);font-size:13px">Loading workspace…</p></div>`;
+  loadCompanies();
+} else {
+  renderLogin();
+}
 </script>
 </body>
 </html>
